@@ -12,7 +12,6 @@ import (
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	fieldmaskpb "google.golang.org/protobuf/types/known/fieldmaskpb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
@@ -95,10 +94,7 @@ type GetUserRequest struct {
 	// Имя ресурса пользователя в формате "user/{id}"
 	// Examples: "user/123", "user/abc-123-def"
 	// Required: must start with "user/"
-	UserId string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	// Маска полей для выборочного возврата
-	// Позволяет клиенту запрашивать только нужные поля
-	FieldMask     *fieldmaskpb.FieldMask `protobuf:"bytes,2,opt,name=field_mask,json=fieldMask,proto3" json:"field_mask,omitempty"`
+	UserId        string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -138,13 +134,6 @@ func (x *GetUserRequest) GetUserId() string {
 		return x.UserId
 	}
 	return ""
-}
-
-func (x *GetUserRequest) GetFieldMask() *fieldmaskpb.FieldMask {
-	if x != nil {
-		return x.FieldMask
-	}
-	return nil
 }
 
 // CreateUserRequest - запрос на создание пользователя
@@ -408,11 +397,9 @@ var File_user_service_proto protoreflect.FileDescriptor
 
 const file_user_service_proto_rawDesc = "" +
 	"\n" +
-	"\x12user_service.proto\x12\x04user\x1a\x1cgoogle/api/annotations.proto\x1a\x17google/api/client.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x19google/api/resource.proto\x1a\x17validate/validate.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\"\x99\x01\n" +
+	"\x12user_service.proto\x12\x04user\x1a\x1cgoogle/api/annotations.proto\x1a\x17google/api/client.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x19google/api/resource.proto\x1a\x17validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\"T\n" +
 	"\x0eGetUserRequest\x12B\n" +
-	"\auser_id\x18\x01 \x01(\tB)\x92A\x1b2\x19Unique identifier of user\xe0A\x02\xfaB\x05r\x03\xb0\x01\x01R\x06userId\x12C\n" +
-	"\n" +
-	"field_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskB\b\xfaB\x05\x8a\x01\x02\x10\x00R\tfieldMask\"\xa9\x03\n" +
+	"\auser_id\x18\x01 \x01(\tB)\x92A\x1b2\x19Unique identifier of user\xe0A\x02\xfaB\x05r\x03\xb0\x01\x01R\x06userId\"\xa9\x03\n" +
 	"\x11CreateUserRequest\x12U\n" +
 	"\x04name\x18\x01 \x01(\tBA\x92A\x1d2\x1bUser ID in format user/{id}\xfaB\x1er\x1c\x10\x06\x18\x80\x012\x15^user/[a-zA-Z0-9_-]+$R\x04name\x127\n" +
 	"\x05email\x18\x02 \x01(\tB!\x92A\x142\x12User email address\xe0A\x02\xfaB\x04r\x02`\x01R\x05email\x123\n" +
@@ -450,10 +437,10 @@ const file_user_service_proto_rawDesc = "" +
 	"\x06ACTIVE\x10\x01\x12\v\n" +
 	"\aBLOCKED\x10\x02\x12\x16\n" +
 	"\x12PENDING_ACTIVATION\x10\x03\x12\v\n" +
-	"\aDELETED\x10\x042\xd5\x01\n" +
-	"\vUserService\x12`\n" +
+	"\aDELETED\x10\x042\xca\x01\n" +
+	"\vUserService\x12U\n" +
 	"\aGetUser\x12\x14.user.GetUserRequest\x1a\n" +
-	".user.User\"3\xdaA\x12name_id,field_mask\x82\xd3\xe4\x93\x02\x18\x12\x16/api/v1/user/{user_id}\x12d\n" +
+	".user.User\"(\xdaA\auser_id\x82\xd3\xe4\x93\x02\x18\x12\x16/api/v1/user/{user_id}\x12d\n" +
 	"\n" +
 	"CreateUser\x12\x17.user.CreateUserRequest\x1a\n" +
 	".user.User\"1\xdaA\x17name,email,age,metadata\x82\xd3\xe4\x93\x02\x11:\x01*\"\f/api/v1/userBBZ@github.com/engineering-mastery/protobuf/examples/golang/api;userb\x06proto3"
@@ -480,26 +467,24 @@ var file_user_service_proto_goTypes = []any{
 	(*ErrorInfo)(nil),             // 4: user.ErrorInfo
 	nil,                           // 5: user.CreateUserRequest.MetadataEntry
 	nil,                           // 6: user.User.MetadataEntry
-	(*fieldmaskpb.FieldMask)(nil), // 7: google.protobuf.FieldMask
-	(*timestamppb.Timestamp)(nil), // 8: google.protobuf.Timestamp
+	(*timestamppb.Timestamp)(nil), // 7: google.protobuf.Timestamp
 }
 var file_user_service_proto_depIdxs = []int32{
-	7, // 0: user.GetUserRequest.field_mask:type_name -> google.protobuf.FieldMask
-	5, // 1: user.CreateUserRequest.metadata:type_name -> user.CreateUserRequest.MetadataEntry
-	0, // 2: user.User.status:type_name -> user.UserStatus
-	8, // 3: user.User.created_at:type_name -> google.protobuf.Timestamp
-	8, // 4: user.User.updated_at:type_name -> google.protobuf.Timestamp
-	8, // 5: user.User.last_login_at:type_name -> google.protobuf.Timestamp
-	6, // 6: user.User.metadata:type_name -> user.User.MetadataEntry
-	1, // 7: user.UserService.GetUser:input_type -> user.GetUserRequest
-	2, // 8: user.UserService.CreateUser:input_type -> user.CreateUserRequest
-	3, // 9: user.UserService.GetUser:output_type -> user.User
-	3, // 10: user.UserService.CreateUser:output_type -> user.User
-	9, // [9:11] is the sub-list for method output_type
-	7, // [7:9] is the sub-list for method input_type
-	7, // [7:7] is the sub-list for extension type_name
-	7, // [7:7] is the sub-list for extension extendee
-	0, // [0:7] is the sub-list for field type_name
+	5, // 0: user.CreateUserRequest.metadata:type_name -> user.CreateUserRequest.MetadataEntry
+	0, // 1: user.User.status:type_name -> user.UserStatus
+	7, // 2: user.User.created_at:type_name -> google.protobuf.Timestamp
+	7, // 3: user.User.updated_at:type_name -> google.protobuf.Timestamp
+	7, // 4: user.User.last_login_at:type_name -> google.protobuf.Timestamp
+	6, // 5: user.User.metadata:type_name -> user.User.MetadataEntry
+	1, // 6: user.UserService.GetUser:input_type -> user.GetUserRequest
+	2, // 7: user.UserService.CreateUser:input_type -> user.CreateUserRequest
+	3, // 8: user.UserService.GetUser:output_type -> user.User
+	3, // 9: user.UserService.CreateUser:output_type -> user.User
+	8, // [8:10] is the sub-list for method output_type
+	6, // [6:8] is the sub-list for method input_type
+	6, // [6:6] is the sub-list for extension type_name
+	6, // [6:6] is the sub-list for extension extendee
+	0, // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_user_service_proto_init() }

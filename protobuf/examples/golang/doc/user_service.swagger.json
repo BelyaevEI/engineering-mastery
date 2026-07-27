@@ -74,13 +74,6 @@
             "in": "path",
             "required": true,
             "type": "string"
-          },
-          {
-            "name": "field_mask",
-            "description": "Маска полей для выборочного возврата\nПозволяет клиенту запрашивать только нужные поля",
-            "in": "query",
-            "required": false,
-            "type": "string"
           }
         ],
         "tags": [

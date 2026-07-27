@@ -7,7 +7,6 @@ import "google/api/client.proto";
 import "google/api/field_behavior.proto";
 import "google/api/resource.proto";
 import "validate/validate.proto";
-import "google/protobuf/field_mask.proto";
 import "google/protobuf/timestamp.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
 
@@ -22,7 +21,7 @@ service UserService {
     option (google.api.http) = {
       get: "/api/v1/user/{user_id}"
     };
-    option (google.api.method_signature) = "name_id,field_mask";
+    option (google.api.method_signature) = "user_id";
   }
 
   // CreateUser - создание нового пользователя
@@ -47,11 +46,6 @@ message GetUserRequest {
     (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "Unique identifier of user"}
   ];
 
-  // Маска полей для выборочного возврата
-  // Позволяет клиенту запрашивать только нужные поля
-  google.protobuf.FieldMask field_mask = 2 [
-     (validate.rules).message.required = false
-  ];
 }
 
 // CreateUserRequest - запрос на создание пользователя
