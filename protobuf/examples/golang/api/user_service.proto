@@ -1,0 +1,177 @@
+syntax = "proto3";
+
+package user;
+
+import "google/api/annotations.proto";
+import "google/api/client.proto";
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "validate/validate.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+option go_package = "github.com/engineering-mastery/protobuf/examples/golang/api;user";
+
+// UserService - сервис для управления пользователями
+// Следует Google API Design Guidelines
+service UserService {
+  // GetUser - получение данных о пользователе по его ID
+  // Возвращает ошибку NOT_FOUND если пользователь не существует
+  rpc GetUser(GetUserRequest) returns (User) {
+    option (google.api.http) = {
+      get: "/api/v1/user/{user_id}"
+    };
+    option (google.api.method_signature) = "name_id,field_mask";
+  }
+
+  // CreateUser - создание нового пользователя
+  rpc CreateUser(CreateUserRequest) returns (User) {
+    option (google.api.http) = {
+      post: "/api/v1/user"
+      body: "*"
+    };
+    option (google.api.method_signature) = "name,email,age,metadata";
+  }
+}
+
+// GetUserRequest - запрос на получение пользователя
+// Ресурсы идентифицируются по имени в формате "user/{id}"
+message GetUserRequest {
+  // Имя ресурса пользователя в формате "user/{id}"
+  // Examples: "user/123", "user/abc-123-def"
+  // Required: must start with "user/"
+  string user_id = 1 [
+    (validate.rules).string.uuid = true,
+    (google.api.field_behavior) = REQUIRED,
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "Unique identifier of user"}
+  ];
+
+  // Маска полей для выборочного возврата
+  // Позволяет клиенту запрашивать только нужные поля
+  google.protobuf.FieldMask field_mask = 2 [
+     (validate.rules).message.required = false
+  ];
+}
+
+// CreateUserRequest - запрос на создание пользователя
+// ID может быть передан клиентом или генерируется сервером
+message CreateUserRequest {
+  // Уникальный идентификатор пользователя в формате "user/{id}"
+  // Examples: "user/123", "user/abc-123-def"
+  // Если не указан, генерируется сервером
+  string name = 1 [
+    (validate.rules).string.min_len = 6,
+    (validate.rules).string.max_len = 128,
+    (validate.rules).string.pattern = "^user/[a-zA-Z0-9_-]+$",
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "User ID in format user/{id}"}
+  ];
+
+  // Email пользователя (обязательный для создания)
+  string email = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (validate.rules).string.email = true,
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "User email address"}
+  ];
+
+  // Возраст пользователя в годах
+  // Valid range: 0-150 (по статистике, живут не дольше ~122 лет)
+  int32 age = 3 [
+    (google.api.field_behavior) = OPTIONAL,
+    (validate.rules).int32.lte = 150,
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "User age in years"}
+  ];
+
+  // Дополнительные метаданные в формате key-value
+  // Полезно для хранения кастомных данных без изменения схемы
+  map<string, string> metadata = 4 [
+    (validate.rules).map.keys.string.pattern = "^[a-zA-Z0-9_-]+$",
+    (validate.rules).map.values.string.max_len = 1024,
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "Additional metadata as key-value pairs"}
+  ];
+}
+
+// User - сущность пользователя
+// Следует Google Cloud API Design Guidelines
+message User {
+  // Уникальный идентификатор пользователя в формате "user/{id}"
+  // Output only - генерируется сервером
+  string name = 1 [
+    (google.api.resource_reference).type = "example.googleapis.com/User",
+    (google.api.field_behavior) = OUTPUT_ONLY
+  ];
+
+  // Email пользователя (должен быть уникален)
+  // Required: для аутентификации
+  string email = 4 [
+    (google.api.field_behavior) = REQUIRED,
+    (validate.rules).string.email = true
+  ];
+
+  // Возраст пользователя в годах
+  // Valid range: 0-150 (согласно statistics, живут не дольше ~122 лет)
+  int32 age = 5 [
+    (google.api.field_behavior) = OPTIONAL,
+    (validate.rules).int32.lte = 150
+  ];
+
+  // Статус пользователя
+  UserStatus status = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Дата создания записи
+  google.protobuf.Timestamp created_at = 7 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Дата последнего обновления
+  google.protobuf.Timestamp updated_at = 8 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Дата последнего входа
+  google.protobuf.Timestamp last_login_at = 9 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Дополнительные метаданные в формате key-value
+  // Полезно для хранения кастомных данных без изменения схемы
+  map<string, string> metadata = 10 [
+    (validate.rules).map.keys.string.pattern = "^[a-zA-Z0-9_-]+$",
+    (validate.rules).map.values.string.max_len = 1024
+  ];
+}
+
+// UserStatus - статус пользователя
+// Используем camelCase для совместимости с JSON
+enum UserStatus {
+  // Неизвестный статус (default)
+  USER_STATUS_UNSPECIFIED = 0;
+
+  // Активный пользователь - может использовать систему
+  ACTIVE = 1;
+
+  // Заблокирован администратором (например, за нарушение правил)
+  BLOCKED = 2;
+
+  // Ожидает подтверждения email (после регистрации)
+  PENDING_ACTIVATION = 3;
+
+  // Удалён (soft delete - может быть восстановлен)
+  DELETED = 4;
+}
+
+// ErrorInfo - детали ошибки для использования в response
+// Следует AIP-193: https://google.aip.dev/193
+message ErrorInfo {
+  // Причина ошибки
+  string reason = 1 [
+     (validate.rules).string.min_len = 1,
+     (validate.rules).string.max_len = 100
+  ];
+
+  // Домен, в котором произошла ошибка
+  string domain = 2 [
+     (validate.rules).string.min_len = 1,
+     (validate.rules).string.max_len = 100
+  ];
+
+  // Дополнительные детали
+  repeated string metadata = 3 [
+     (validate.rules).repeated.max_items = 10,
+     (validate.rules).repeated.items.string.max_len = 256
+  ];
+}
