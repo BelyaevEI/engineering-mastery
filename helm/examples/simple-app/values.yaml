@@ -1,0 +1,28 @@
+# Конфигурация по умолчанию для простого приложения
+replicaCount: 1
+
+image:
+  repository: nginx
+  tag: "1.24"
+  pullPolicy: IfNotPresent
+
+# Настройки сервиса
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 80
+
+# Настройки ingress (можно включить/выключить)
+ingress:
+  enabled: false
+  className: ""
+  hosts:
+    - host: simple-app.local
+      paths:
+        - path: /
+          pathType: Prefix
+
+# Конфигурация приложения
+app:
+  name: simple-app
+  logLevel: info

@@ -1,0 +1,8 @@
+apiVersion: v2
+name: simple-app
+description: Простое приложение для демонстрации Helm
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+maintainers:
+  - name: Demo Team

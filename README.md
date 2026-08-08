@@ -22,6 +22,7 @@
 ## Темы
 
 - [Protocol Buffers (protobuf)](./protobuf/README.md) — пример использования gRPC и protobuf.
+- [Helm](./helm/README.md) — менеджер пакетов для Kubernetes с примерами чартов и вопросами к собеседованию.
 
 ## Как использовать
 
