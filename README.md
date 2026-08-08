@@ -21,7 +21,7 @@
 
 ## Темы
 
-- [Protocol Buffers (protobuf)](./protobuf/README.md) — сериализация данных для API и хранения
+- [Protocol Buffers (protobuf)](./protobuf/README.md) — пример использования gRPC и protobuf.
 
 ## Как использовать
 
