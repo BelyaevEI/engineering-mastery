@@ -4,51 +4,51 @@ Protocol Buffers — это язык сериализации данных от 
 
 ## Оглавление
 
-- [Что включено](#что-включено)
-- [Основные концепции и устройство gRPC](#основные-концепции-и-устройство-grpc)
-  - [gRPC — что это?](#grpc---что-это)
-  - [Основные концепции](#основные-концепции)
-  - [Архитектура gRPC](#архитектура-grpc)
-  - [Каналы связи](#каналы-связи)
-  - [Преимущества gRPC](#преимущества-grpc)
-  - [Базовая структура `.proto` файла](#базовая-структура-proto-файла)
-  - [Базовый поток команд в gRPC](#базовый-поток-команд-в-grpc)
+- [Что включено](#what-included)
+- [Основные концепции и устройство gRPC](#grpc-concepts)
+  - [gRPC — что это?](#what-is-grpc)
+  - [Основные концепции](#basic-concepts)
+  - [Архитектура gRPC](#grpc-architecture)
+  - [Каналы связи](#communication-channels)
+  - [Преимущества gRPC](#grpc-benefits)
+  - [Базовая структура `.proto` файла](#proto-file-structure)
+  - [Базовый поток команд в gRPC](#base-command-flow-in-grpc)
 - [QA](#qa)
-  - [Часто проверяемые items при работе с gRPC/protobuf](#часто-проверяемые-items-при-работе-с-grpcprotobuf)
-  - [Обработка ошибок](#обработка-ошибок)
-  - [Тестирование](#тестирование)
-  - [Отладка](#отладка)
+  - [Часто проверяемые items при работе с gRPC/protobuf](#grpc-protobuf-checklist)
+  - [Обработка ошибок](#error-handling)
+  - [Тестирование](#testing)
+  - [Отладка](#debugging)
 - [FAQ](#faq)
-  - [Общие вопросы](#общие-вопросы)
-  - [gRPC вопросы](#grpc-вопросы)
-  - [Производительность](#производительность)
-  - [Разработка](#разработка)
-  - [Отладка и диагностика](#отладка-и-диагностика)
-  - [Безопасность](#безопасность)
-- [TLS и mTLS в gRPC](#tls-и-mtls в-grpc)
-  - [Типы защиты](#типы-защиты)
+  - [Общие вопросы](#general-questions)
+  - [gRPC вопросы](#grpc-questions)
+  - [Производительность](#performance)
+  - [Разработка](#development)
+  - [Отладка и диагностика](#debugging-and-diagnostics)
+  - [Безопасность](#security)
+- [TLS и mTLS в gRPC](#tls-and-mtls-in-grpc)
+  - [Типы защиты](#protection-types)
     - [1. TLS (Transport Layer Security)](#1-tls-transport-layer-security)
     - [2. mTLS (Mutual TLS)](#2-mtls-mutual-tls)
-  - [Сравнение TLS vs mTLS](#сравнение-tls-vs-mtls)
-  - [Управление сертификатами](#управление-сертификатами)
-  - [Генерация сертификатов (скрипт)](#генерация-сертификатов-скрипт)
-  - [Проверка сертификатов](#проверка-сертификатов)
-  - [Интеграция с Kubernetes](#интеграция-с-kubernetes)
-  - [Миграция с HTTP/JSON на gRPC with TLS](#миграция-с-httpjson-grpc-with-tls)
+  - [Сравнение TLS vs mTLS](#tls-vs-mtls-comparison)
+  - [Управление сертификатами](#certificate-management)
+  - [Генерация сертификатов (скрипт)](#certificate-generation-script)
+  - [Проверка сертификатов](#certificate-validation)
+  - [Интеграция с Kubernetes](#kubernetes-integration)
+  - [Миграция с HTTP/JSON на gRPC with TLS](#migration-from-httpjson-to-grpc-with-tls)
   - [Best Practices](#best-practices)
-- [Полезные ссылки](#полезные-ссылки)
+- [Полезные ссылки](#useful-links)
 
-## Что включено
+## Что включено {#what-included}
 
 - `examples/` — примеры использования protobuf с Go
 
-## Основные концепции и устройство gRPC
+## Основные концепции и устройство gRPC {#grpc-concepts}
 
-### gRPC — что это?
+### gRPC — что это? {#what-is-grpc}
 
 gRPC (Google Remote Procedure Call) — это современный фреймворк для построения распределённых систем,allowing services to communicate с использованием HTTP/2 для передачи сообщений. gRPC использует Protocol Buffers как язык описания интерфейсов и формат сериализации данных.
 
-### Основные концепции
+### Основные концепции {#basic-concepts}
 
 | Концепция | Описание |
 |-----------|----------|
@@ -59,7 +59,7 @@ gRPC (Google Remote Procedure Call) — это современный фрейм
 | **Client Streaming** | Клиент отправляет поток данных, сервер возвращает один ответ |
 | **Bidirectional Streaming** | Оба участника обмениваются потоками данных одновременно |
 
-### Архитектура gRPC
+### Архитектура gRPC {#grpc-architecture}
 
 ```
 ┌─────────────────┐                              ┌─────────────────┐
@@ -72,12 +72,12 @@ gRPC (Google Remote Procedure Call) — это современный фрейм
 └─────────────────┘                              └─────────────────┘
 ```
 
-### Каналы связи
+### Каналы связи {#communication-channels}
 
 - **HTTP/2** — транспортный протокол с multiplexing, header compression и flow control
 - **Protocol Buffers** — формат сериализации (легковесный, быстрый, строго типизированный)
 
-### Преимущества gRPC
+### Преимущества gRPC {#grpc-benefits}
 
 - **Производительность**: бинарный формат protobuf быстрее JSON/XML
 - **Типизация**: строгая схема данных из `.proto` файлов
@@ -85,7 +85,7 @@ gRPC (Google Remote Procedure Call) — это современный фрейм
 - **Поддержка потоков**: встроенная поддержка stream-коммуникации
 - **Cross-language**: официальная поддержка для множества языков (Go, Java, Python, Node.js и др.)
 
-### Базовая структура `.proto` файла
+### Базовая структура `.proto` файла {#proto-file-structure}
 
 ```protobuf
 syntax = "proto3";
@@ -112,7 +112,7 @@ message HelloResponse {
 }
 ```
 
-### Базовый поток команд в gRPC
+### Базовый поток команд в gRPC {#base-command-flow-in-grpc}
 
 1. **Определение сервиса** в `service.proto`
 2. **Генерация кода**: `protoc --go_out=. --go-grpc_out=. service.proto`
@@ -120,9 +120,9 @@ message HelloResponse {
 4. **Создание клиента** с автоматически сгенерированным кодом
 5. **Вызов методов** как локальных функций
 
-## QA
+## QA {#qa}
 
-### Часто проверяемые items при работе с gRPC/protobuf
+### Часто проверяемые items при работе с gRPC/protobuf {#grpc-protobuf-checklist}
 
 | Категория | Что проверять | Инструменты/Подсказки |
 |-----------|---------------|----------------------|
@@ -132,7 +132,7 @@ message HelloResponse {
 | **Сервер** | - Все методы реализованы<br>- Обработка ошибок (status codes)<br>- Stream закрывается корректно | Logs, `grpcurl`, тесты |
 | **Клиент** | - Правильная обработка stream<br>- Retry логика<br>- Timeout и cancellation | Context, telemetry |
 
-### Обработка ошибок
+### Обработка ошибок {#error-handling}
 
 gRPC использует стандартные статус-коды:
 
@@ -153,7 +153,7 @@ gRPC использует стандартные статус-коды:
 | `DATA_LOSS` | 15 | Потеря данных |
 | `UNKNOWN` | 2 | Неизвестная ошибка |
 
-### Тестирование
+### Тестирование {#testing}
 
 ```bash
 # Проверка .proto файлов
@@ -166,15 +166,15 @@ grpcurl -plaintext -d '{"name": "test"}' localhost:50051 example.Greeter/SayHell
 protoc --proto_path=. --include_imports service.proto --descriptor_set_out=desc.pb
 ```
 
-### Отладка
+### Отладка {#debugging}
 
 - **Логирование**: логируй full error message с `status.FromError()`
 - **Tracing**: используй `context` для передачи trace ID
 - **Метрики**: count ошибок по статус-кодам, latency по методам
 
-## FAQ
+## FAQ {#faq}
 
-### Общие вопросы
+### Общие вопросы {#general-questions}
 
 **Q: В чём разница между proto2 и proto3?**
 
@@ -195,7 +195,7 @@ ID используются для идентификации полей в би
 
 ---
 
-### gRPC вопросы
+### gRPC вопросы {#grpc-questions}
 
 **Q: Когда использовать streaming, а когда unary RPC?**
 
@@ -218,7 +218,7 @@ ID используются для идентификации полей в би
 
 ---
 
-### Производительность
+### Производительность {#performance}
 
 **Q: Почему бинарный формат эффективнее JSON?**
 
@@ -239,7 +239,7 @@ ID используются для идентификации полей в би
 
 ---
 
-### Разработка
+### Разработка {#development}
 
 **Q: Как проверить, что .proto файл корректен?**
 
@@ -271,7 +271,7 @@ message User {
 
 ---
 
-### Отладка и диагностика
+### Отладка и диагностика {#debugging-and-diagnostics}
 
 **Q: Как протестировать gRPC метод локально?**
 
@@ -305,7 +305,7 @@ grpcurl -plaintext localhost:50051 describe example.Greeter
 
 ---
 
-### Безопасность
+### Безопасность {#security}
 
 **Q: Нужно ли шифрование для gRPC?**
 
@@ -328,9 +328,9 @@ conn, _ := grpc.Dial(addr, grpc.WithTransportCredentials(credentials.NewClientTL
 
 ---
 
-## TLS и mTLS в gRPC
+## TLS и mTLS в gRPC {#tls-and-mtls-in-grpc}
 
-### Типы защиты
+### Типы защиты {#protection-types}
 
 #### 1. TLS (Transport Layer Security)
 
@@ -413,7 +413,7 @@ conn, _ := grpc.Dial(addr, grpc.WithTransportCredentials(creds))
 
 ---
 
-### Сравнение TLS vs mTLS
+### Сравнение TLS vs mTLS {#tls-vs-mtls-comparison}
 
 | Критерий | TLS | mTLS |
 |----------|-----|------|
@@ -425,7 +425,7 @@ conn, _ := grpc.Dial(addr, grpc.WithTransportCredentials(creds))
 
 ---
 
-### Управление сертификатами
+### Управление сертификатами {#certificate-management}
 
 #### Структура директорий
 
@@ -472,7 +472,7 @@ openssl x509 -req -in client.csr -CA ca.crt -CAkey ca.key \
 
 ---
 
-### Проверка сертификатов
+### Проверка сертификатов {#certificate-validation}
 
 ```bash
 # Проверить сертификат сервера
@@ -491,7 +491,7 @@ openssl x509 -in server.crt -noout -issuer -dates
 
 ---
 
-### Интеграция с Kubernetes
+### Интеграция с Kubernetes {#kubernetes-integration}
 
 #### Secret для TLS
 
@@ -550,7 +550,7 @@ spec:
 
 ---
 
-### Миграция с HTTP/JSON на gRPC with TLS
+### Миграция с HTTP/JSON на gRPC with TLS {#migration-from-httpjson-to-grpc-with-tls}
 
 #### Этап 1: Подготовка
 
@@ -576,7 +576,7 @@ openssl s_client -connect localhost:443 -tls1_2
 
 ---
 
-### Best Practices
+### Best Practices {#best-practices}
 
 | Практика | Описание |
 |----------|----------|
@@ -589,7 +589,7 @@ openssl s_client -connect localhost:443 -tls1_2
 
 ---
 
-## Полезные ссылки
+## Полезные ссылки {#useful-links}
 
 - [Официальная документация](https://protobuf.dev/)
 - [Protocol Buffers Go Guide](https://protobuf.dev/getting-started/gotutorial/)
