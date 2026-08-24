@@ -788,6 +788,306 @@ TS.ADD temperature * 25.5
 TS.RANGE temperature 1600000000 1600000100
 ```
 
+## Использование с Go
+
+### Установка библиотеки
+
+```bash
+go get github.com/redis/go-redis/v9
+```
+
+### Базовое подключение
+
+```go
+import (
+    "context"
+    "log"
+    "time"
+    "github.com/redis/go-redis/v9"
+)
+
+func main() {
+    ctx := context.Background()
+    
+    rdb := redis.NewClient(&redis.Options{
+        Addr:     "localhost:6379",
+        Password: "", // нет пароля по умолчанию
+        DB:       0,  // номер БД
+    })
+    
+    // Проверка соединения
+    err := rdb.Ping(ctx).Err()
+    if err != nil {
+        log.Fatal("Failed to connect:", err)
+    }
+    
+    defer rdb.Close()
+}
+```
+
+### Работа с контекстами
+
+Все операции принимают `context.Context` как первый аргумент:
+
+```go
+// Контекст с timeout
+ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+defer cancel()
+
+val, err := rdb.Get(ctx, "key").Result()
+
+// Контекст с cancel
+ctx, cancel := context.WithCancel(context.Background())
+// Можно вызвать cancel() позже
+cancel()
+```
+
+### Обработка ошибок
+
+```go
+val, err := rdb.Get(ctx, "key").Result()
+if err != nil {
+    if err == redis.Nil {
+        // Ключ не найден
+        fmt.Println("Key not found")
+    } else {
+        // Другая ошибка
+        log.Fatal(err)
+    }
+}
+```
+
+### Pipeline
+
+Для выполнения нескольких команд за один network round-trip:
+
+```go
+pipe := rdb.Pipeline()
+for i := 0; i < 100; i++ {
+    pipe.Set(ctx, fmt.Sprintf("key:%d", i), fmt.Sprintf("value%d", i), 0)
+}
+_, err := pipe.Exec(ctx)
+if err != nil {
+    log.Fatal(err)
+}
+```
+
+### Transactions (WATCH/MULTI/EXEC)
+
+```go
+err := rdb.Watch(ctx, func(tx *redis.Tx) error {
+    // Read current value
+    current, err := tx.Get(ctx, "counter").Result()
+    if err != nil && err != redis.Nil {
+        return err
+    }
+    
+    val, _ := strconv.ParseInt(current, 10, 64)
+    
+    // Execute transaction
+    _, err = tx.Pipelined(ctx, func(pipe redis.Pipeliner) error {
+        pipe.Set(ctx, "counter", strconv.FormatInt(val+1, 10), 0)
+        return nil
+    })
+    
+    return err
+}, "counter")
+```
+
+### Pub/Sub
+
+```go
+// Подписка
+sub := rdb.Subscribe(ctx, "channel1", "channel2")
+defer sub.Close()
+
+// Прием сообщений
+msg, err := sub.ReceiveMessage(ctx)
+if err == nil {
+    fmt.Printf("Got message from %s: %s\n", msg.Channel, msg.Payload)
+}
+
+// Публикация
+rdb.Publish(ctx, "channel1", "Hello World")
+```
+
+### Streams
+
+```go
+// Добавление сообщения
+rdb.XAdd(ctx, &redis.XAddArgs{
+    Stream: "mystream",
+    Values: map[string]interface{}{"field": "value"},
+})
+
+// Чтение с определенного ID
+rdb.XRead(ctx, &redis.XReadArgs{
+    Streams: []string{"mystream", "0-0"},
+})
+
+// Читательская группа
+rdb.XReadGroup(ctx, &redis.XReadGroupArgs{
+    Group:    "mygroup",
+    Consumer: "consumer1",
+    Streams:  []string{"mystream", ">"},
+})
+```
+
+## Высокая доступность
+
+### Redis Sentinel
+
+Sentinel — система мониторинга и автоматического failover:
+
+```go
+rdb := redis.NewFailoverClient(&redis.FailoverOptions{
+    MasterName:    "mymaster",
+    SentinelAddrs: []string{
+        "localhost:26379",
+        "localhost:26380",
+        "localhost:26381",
+    },
+})
+```
+
+### Redis Cluster
+
+Кластер для horizontal scaling:
+
+```go
+rdb := redis.NewClusterClient(&redis.ClusterOptions{
+    Addrs: []string{
+        "localhost:7000",
+        "localhost:7001",
+        "localhost:7002",
+    },
+})
+```
+
+## Лучшие практики
+
+### Нейминг ключей
+
+```bash
+# Использовать префиксы и разделители
+user:1000:profile
+user:1000:sessions
+order:2024:01:001
+
+# Избегать пробелов и спецсимволов
+```
+
+### Размер значений
+
+- Избегать очень больших значений (>1MB)
+- Для больших данных использовать файловое хранилище
+- Разбивать большие списки/множества
+
+### Pipeline для батчей
+
+```go
+// Плохо: 1000 отдельных запросов
+for i := 0; i < 1000; i++ {
+    rdb.Set(ctx, fmt.Sprintf("key:%d", i), i, 0)
+}
+
+// Хорошо: один pipeline
+pipe := rdb.Pipeline()
+for i := 0; i < 1000; i++ {
+    pipe.Set(ctx, fmt.Sprintf("key:%d", i), i, 0)
+}
+pipe.Exec(ctx)
+```
+
+## Типичные ошибки на собеседованиях
+
+### Вопрос: "Как Redis работает с большими объемами данных?"
+
+**Неправильный ответ:**
+> "Redis просто хранит все в памяти, поэтому он быстро работает с любыми данными."
+
+**Правильный ответ:**
+> "Redis действительно хранит данные в памяти, но это не значит, что он работает одинаково быстро со всеми объемами. При больших объемах данных (миллионы ключей) происходит фрагментация памяти. Операции с большими структурами данных (HGETALL на хэше с 100K полей, SMEMBERS на большом множестве) имеют O(N) сложность и могут блокировать сервер. Redis решает это с помощью: 1) Итеративного обхода (SCAN вместо KEYS), 2) Ограничения размеров ответов, 3) Асинхронных операций в фоновом потоке."
+
+### Вопрос: "Как Redis обеспечивает персистентность?"
+
+**Неправильный ответ:**
+> "Redis просто сохраняет данные в файл и читает при запуске."
+
+**Правильный ответ:**
+> "Redis предлагает два механизма: 1) RDB (Snapshotting) - периодически делает снимок всей БД в файл. 2) AOF (Append Only File) - логирует каждую операцию записи. 3) Активная репликация - данные дублируются на слейвы. 4) Активная репликация (Redis 6+) - синхронная репликация на несколько слейвов для минимальной потери данных."
+
+### Вопрос: "Как работает Redis Cluster?"
+
+**Неправильный ответ:**
+> "Кластер хранит данные на нескольких серверах и распределяет нагрузку."
+
+**Правильный ответ:**
+> "Redis Cluster использует hash sharding с 16384 слотами. Каждый ключ хэшируется (CRC16) и попадает в определенный слот. Клиенты напрямую знают, какой слот на каком узле. При миграции слотов клиенты получают MOVED/ASK редиректы. Для multi-key операций ключи должны попадать в один слот, поэтому используется {hashtag}."
+
+### Вопрос: "Как реализовать распределенную блокировку?"
+
+**Неправильный ответ:**
+> "Использую SETNX и DEL для блокировки."
+
+**Правильный ответ:**
+> "Простая SETNX может привести к deadlocks. Правильная реализация: 1) SETNX + EXPIRE в одной транзакции, 2) Уникальный token для каждого клиента, 3) Lua-скрипт для атомарной операции. Нужен механизм renew'а таймаута и обработка случаев, когда блокировка истекла, но клиент все еще держит ее."
+
+### Вопрос: "Почему в Redis нет оператора JOIN?"
+
+**Неправильный ответ:**
+> "Redis - это не реляционная БД, поэтому JOIN не нужен."
+
+**Правильный ответ:**
+> "Redis специально спроектирован как in-memory store для конкретных сценариев (кэш, очереди, счетчики). JOIN - это сложная операция, требующая парсинга SQL, построения плана выполнения, что не соответствует философии Redis (простота, скорость). Redis использует другой подход: 1) Данные хранятся в готовом виде, 2) Для связей используются ID и multiple lookups, 3) Lua-скрипты для сложных операций."
+
+### Вопрос: "Как проверить, что Redis работает корректно?"
+
+**Неправильный ответ:**
+> "Отправляю PING и смотрю PONG."
+
+**Правильный ответ:**
+> "Для базовой проверки: PING. Для полной: 1) INFO memory - использование памяти, 2) INFO clients - количество подключений, 3) INFO stats - hits/misses для кэша, 4) INFO persistence - статус RDB/AOF, 5) SLOWLOG для долгих операций. В продакшене используют мониторинг (RedisExporter + Prometheus + Grafana)."
+
+## Соседние технологии
+
+### Redis vs Memcached
+
+| Feature | Redis | Memcached |
+|---------|-------|-----------|
+| Типы данных | строка, список, множество, хэш, сортированное множество | только строка |
+| Персистентность | RDB, AOF | нет |
+| Репликация | да | нет |
+
+### RedisJSON
+
+Модуль для работы с JSON-документами:
+
+```bash
+JSON.SET key . '{"name": "John", "age": 30}'
+JSON.GET key
+JSON.NUMINCRBY key $.age 1
+```
+
+### RedisSearch
+
+Модуль для полнотекстового поиска:
+
+```bash
+FT.CREATE idx ON HASH PREFIX 1 "doc:" SCHEMA title TEXT body TEXT
+FT.SEARCH idx "hello world"
+```
+
+### RedisTimeSeries
+
+Модуль для временных рядов:
+
+```bash
+TS.CREATE temperature
+TS.ADD temperature * 25.5
+TS.RANGE temperature 1600000000 1600000100
+```
+
 ## Полезные ссылки
 
 - [Официальный сайт Redis](https://redis.io/)
@@ -795,3 +1095,5 @@ TS.RANGE temperature 1600000000 1600000100
 - [Redis Commands](https://redis.io/commands/)
 - [Redis GitHub](https://github.com/redis/redis)
 - [RedisInsight](https://redis.com/redis-enterprise/redis-insight/)
+- [go-redis/redis](https://github.com/redis/go-redis)
+- [Примеры Go](./examples/)
